@@ -18,22 +18,23 @@ import java.util.Random;
  * Created by Alex on 12.09.2015.
  */
 public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
+    private int pressDown = 0;
+    private int pressUp = 0;
+
     //Расчет
     private GameThread gameThread;
     private boolean newGameCreated = false;
     private boolean justEntered = true;
-    private boolean disappear = true;
 
     //Отображение
     private Background bg;
     public static Player player;
     //Противники
     public static ArrayList<Enemy> enemies;
-    public static ArrayList<Explosion> enemiesExplosions;
+    public static ArrayList<Explosion> explosions;
     private long enemyStartTime;
     private Random rand;
     private Enemy e;
-    //Взрыв
     public static Explosion explosion; //копируем и взрываем где-нибудь
 
     //Интерфейс
@@ -77,7 +78,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         bg = new Background(BitmapFactory.decodeResource(getResources(), R.drawable.bg));
         player = new Player(BitmapFactory.decodeResource(getResources(), R.drawable.spitfire_sprite), 90, 38, 3, 100);
         enemies = new ArrayList<Enemy>();
-        enemiesExplosions = new ArrayList<Explosion>();
+        explosions = new ArrayList<Explosion>();
         enemyStartTime = System.nanoTime();
         rand = new Random();
         explosion = new Explosion(0, 0, 100, 100, BitmapFactory.decodeResource(getResources(), R.drawable.explosion), 25, 0);
@@ -91,20 +92,21 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         if(e.getAction() == MotionEvent.ACTION_DOWN) {
+            pressDown++;
             if(!player.getPlaying() && !newGameCreated) {
                 resetGame();
                 player.setPlaying(true);
             }
             if(!player.getTriggerState()) {
                 player.setTriggerState(true);
-                player.setStartShotTime();
-                if (player.getPlaying()) {
+                if (!player.getDisappear()) {
                     player.shot();
                 }
             }
             return true;
         }
         if(e.getAction() == MotionEvent.ACTION_UP) {
+            pressUp++;
             if(player.getPlaying()) {
                 player.setTriggerState(false);
             }
@@ -126,26 +128,19 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             //задний фон
             bg.draw(canvas);
             //игрок
-            if(!disappear)
+            if(!player.getDisappear())
                 player.draw(canvas);
-            //взрыв на месте игрока
-            if(player.getLostGame()) {
-                try {
-                    player.drawExplosion(canvas);
-                }
-                catch (Exception e) { }
-            }
             //противники
             for(Enemy e : enemies) {
                 e.draw(canvas);
             }
 
             //взорванные противники
-            for(Explosion exp : enemiesExplosions) {
+            for(Explosion exp : explosions) {
                 exp.draw(canvas);
             }
 
-            //drawDebug(canvas, gameThread); //отладочная информация
+            drawDebug(canvas, gameThread); //отладочная информация
             drawText(canvas);
             drawGameInterface(canvas);
             canvas.restoreToCount(savedState);
@@ -157,7 +152,8 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
         //Рассчитываем в случае запущенной игры
         if(player.getPlaying()) {
             bg.update();
-            player.update();
+            if(!player.getDisappear())
+                player.update();
 
             //создание новых самолетов противника. Пока каждые 1.5 секунд
             long enemyElapsedTime = (System.nanoTime() - enemyStartTime)/1000000;
@@ -170,7 +166,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                             Configuration.BF_FRAMECOUNT,
                             1000,
                             35,
-                            10,
+                            200,
                             50
                         ));
                 enemyStartTime = System.nanoTime();
@@ -180,10 +176,13 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                 e = enemies.get(i);
                 e.update();
                 //столкновение c игроком
-                if (checkCollision(e.getRect(), player.getRect())) {
+                if (!player.getDisappear() && checkCollision(e.getRect(), player.getRect())) {
+                    GamePanel.explosions.add(GamePanel.createExplosion(e.getX(), e.getY(), 0));
+                    GamePanel.explosions.add(GamePanel.createExplosion(GamePanel.player.getX(), GamePanel.player.getY(), 0));
+                    GamePanel.explosions.get(GamePanel.explosions.size() - 1).setObjectType(Configuration.ObjectType.Player);
                     enemies.remove(e);
-                    player.setLostGame(true);
-                    player.setPlaying(false);
+                    GamePanel.player.setDisappear(true);
+                    GamePanel.player.setHealth(0);
                     break;
                 }
                 //за экраном, то удаляем
@@ -193,28 +192,25 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             }
 
             //update для взрывов
-            for(int i = 0; i < enemiesExplosions.size(); i++) {
-                enemiesExplosions.get(i).update();
-                if(enemiesExplosions.get(i).isFinished())
-                    enemiesExplosions.remove(i);
+            for(int i = 0; i < explosions.size(); i++) {
+                explosions.get(i).update();
+                if(explosions.get(i).getObjectType() == Configuration.ObjectType.Player) {
+                    if(explosions.get(i).isFinished()) {
+                        player.setPlaying(false);
+                        explosions.remove(i);
+                        break;
+                    }
+                }
+                if(explosions.get(i).isFinished())
+                    explosions.remove(i);
             }
         }
         else {
-            if(player.getLostGame()) {  //разбились, убили
-                if (player.getExplosion() == null)
-                    player.setExplosion(new Explosion(player.getX(), player.getY() - player.getHeight() / 2, 100, 100, BitmapFactory.decodeResource(getResources(), R.drawable.explosion), 25, 0));
-                player.updateExplosion();
-                disappear = true;
-                if(player.getExplosion().isFinished())
-                    player.setLostGame(false);
-            }
-            else { //начать новую игру
-                enemies.clear();
-                player.resetDY();
-                player.clearBullets();
-                newGameCreated = false;
-                player.setExplosion(null);
-            }
+            enemies.clear();
+            explosions.clear();
+            player.resetDY();
+            player.clearBullets();
+            newGameCreated = false;
         }
     }
 
@@ -249,11 +245,11 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
     //Вывод отладочной информации
     private final void drawDebug(Canvas canvas, GameThread th) {
         Paint paint = new Paint();
-        paint.setColor(Color.WHITE);
+        paint.setColor(Color.BLACK);
         paint.setTextSize(20);
         if(th != null) {
             //canvas.drawText("FPS: " + th.getFPS(), 100, 100, paint);
-            canvas.drawText(GameActivity.getAccelerometerString(), 100, 100, paint);
+            canvas.drawText(GameActivity.aX + " - " + GameActivity.aY + " - " + GameActivity.aZ, 100, 100, paint);
         }
     }
     private void resetGame() {
@@ -262,7 +258,6 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
             bestResult = player.getScore();
         player.resetPlayer();
         newGameCreated = true;
-        disappear = false;
     }
 
     public static Explosion createExplosion(int x, int y, int dx) {

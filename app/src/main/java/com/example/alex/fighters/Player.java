@@ -3,7 +3,6 @@ package com.example.alex.fighters;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.view.ViewDebug;
 
 import java.util.ArrayList;
 
@@ -21,13 +20,11 @@ public class Player extends GameObject {
     private ArrayList<Bullet> bullets;
     private int shotSpeed = 20;
     private int shotStrength = 50;
-    private long shotDelay = 500;
-    private long startShotTime;
     private boolean triggerPressed = false;
     private Bullet b;
 
     //Взрыв
-    private Explosion explosion;
+    private boolean disappear;
 
     //Общие параметры игрока
     public static int SPEED = -4;
@@ -44,7 +41,7 @@ public class Player extends GameObject {
         type = Configuration.ObjectType.Player;
         bullets = new ArrayList<Bullet>();
         setUpAnimation(numFrames, d);
-        explosion = null;
+        disappear = true;
     }
 
     private void setUpAnimation(int numFrames, long d) {
@@ -66,8 +63,11 @@ public class Player extends GameObject {
             y = 10;
         //разбились --> ставим playing в false
         if(y >= GamePanel.HEIGHT - (height - 10)) {
-            lostGame = true;
-            playing = false;
+            //lostGame = true;
+            //playing = false;
+            GamePanel.explosions.add(GamePanel.createExplosion(GamePanel.player.getX(), GamePanel.player.getY() - 40, 0));
+            GamePanel.explosions.get(GamePanel.explosions.size() - 1).setObjectType(Configuration.ObjectType.Player);
+            disappear = true;
             health = 0;
         }
         //Вверх
@@ -102,7 +102,7 @@ public class Player extends GameObject {
                     if (b.checkHit(e)) {
                         e.getDamage(b.getDamage());
                         if (e.getHealth() <= 0) {
-                            GamePanel.enemiesExplosions.add(GamePanel.createExplosion(e.getX(), e.getY(), e.getSpeed() * (-1)));
+                            GamePanel.explosions.add(GamePanel.createExplosion(e.getX(), e.getY(), e.getSpeed() * (-1)));
                             GamePanel.enemies.remove(e);
                         }
                         bullets.remove(i);
@@ -113,9 +113,6 @@ public class Player extends GameObject {
         }
     }
 
-    public void updateExplosion() {
-        explosion.update();
-    }
 
     public void draw(Canvas canvas) {
         //Игрок
@@ -124,10 +121,6 @@ public class Player extends GameObject {
         for (Bullet b : bullets) {
             b.draw(canvas);
         }
-    }
-
-    public void drawExplosion(Canvas canvas) {
-        explosion.draw(canvas);
     }
 
     public boolean getPlaying() {
@@ -165,25 +158,26 @@ public class Player extends GameObject {
         lostGame = false;
         bullets.clear();
         triggerPressed = false;
+        disappear = false;
     }
 
     public void getDamage(int dmg) {
-        health -= dmg;
+        if(health - dmg < 0)
+            health = 0;
+        else
+            health -= dmg;
     }
 
     public int getHealth() {
         return health;
     }
 
-    public void shot() {
-        long fireTime = System.nanoTime();
-        if(fireTime - startShotTime > shotDelay) {
-            bullets.add(new Bullet(-1, x + width, y + height / 2, shotSpeed, shotStrength, 2, Color.RED, Configuration.ObjectType.Enemy));
-        }
+    public void setHealth(int hlth) {
+        health = hlth;
     }
 
-    public void setStartShotTime() {
-        startShotTime = System.nanoTime();
+    public void shot() {
+        bullets.add(new Bullet(-1, x + width, y + height / 2, shotSpeed, shotStrength, 2, Color.RED, Configuration.ObjectType.Enemy));
     }
 
     public void setTriggerState(boolean f) {
@@ -198,10 +192,6 @@ public class Player extends GameObject {
         bullets.clear();
     }
 
-    public void setExplosion(Explosion e) {
-        explosion = e;
-    }
-    public Explosion getExplosion() {
-        return explosion;
-    }
+    public boolean getDisappear() { return disappear; }
+    public void setDisappear(boolean f) { disappear = f; }
 }

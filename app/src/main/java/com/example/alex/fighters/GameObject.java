@@ -39,6 +39,6 @@ public class GameObject {
     }
 
     public Rect getRect() {
-        return new Rect(this.x, this.y, this.x + this.width, this.y + this.height);
+        return new Rect(this.x + 10, this.y + 5, this.x + this.width - 10, this.y + this.height - 5); //для более реалистичного столкновения
     }
 }

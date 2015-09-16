@@ -16,7 +16,7 @@ public class GameActivity extends Activity implements SensorEventListener {
     private SensorManager senSensorManager;
     private Sensor senAccelerometer;
     private long lastUpdate = 0;
-    private static float aX, aY, aZ;
+    public static float aX, aY, aZ;
     private float turnThreshold = 1.5f;
 
     public static boolean PLAIN; //прямой полет
@@ -45,11 +45,12 @@ public class GameActivity extends Activity implements SensorEventListener {
                 aX = e.values[0];
                 aY = e.values[1];
                 aZ = e.values[2];
+
                 if(aY < turnThreshold * -1) {
                     UP = true;
                     PLAIN = false;
                 }
-                else if (aY > turnThreshold){
+                else if (aY > turnThreshold) {
                     UP = false;
                     PLAIN = false;
                 }

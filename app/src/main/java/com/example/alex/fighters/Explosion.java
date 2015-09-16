@@ -14,6 +14,7 @@ public class Explosion {
     private Animation animation;
     private Bitmap sprite;
     private int dx;
+    private Configuration.ObjectType objectType;
 
     public Explosion(int x, int y, int w, int h, Bitmap s, int numFrames, int dx) {
         this.x = x;
@@ -67,4 +68,8 @@ public class Explosion {
     public Bitmap getBitmap() {
         return this.sprite;
     }
+
+    public void setObjectType(Configuration.ObjectType type) { objectType = type; }
+
+    public Configuration.ObjectType getObjectType() { return objectType; }
 }

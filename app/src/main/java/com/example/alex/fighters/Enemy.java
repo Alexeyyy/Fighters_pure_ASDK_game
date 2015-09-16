@@ -67,12 +67,14 @@ public class Enemy extends GameObject {
             if(b.getX() < -100) {
                 bullets.remove(i);
             }
-            if(b.checkHit(GamePanel.player)) {
+            if(!GamePanel.player.getDisappear() && b.checkHit(GamePanel.player)) {
                 GamePanel.player.getDamage(b.getDamage());
                 bullets.remove(i);
                 if(GamePanel.player.getHealth() <= 0) {
-                    GamePanel.player.setLostGame(true);
-                    GamePanel.player.setPlaying(false);
+                    GamePanel.explosions.add(GamePanel.createExplosion(GamePanel.player.getX(), GamePanel.player.getY(), 0));
+                    GamePanel.explosions.get(GamePanel.explosions.size() - 1).setObjectType(Configuration.ObjectType.Player);
+                    GamePanel.player.setDisappear(true);
+                    //GamePanel.player.setLostGame(true);
                     break;
                 }
             }

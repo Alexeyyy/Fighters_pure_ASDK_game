@@ -13,13 +13,14 @@ public class Player extends GameObject {
     private Bitmap sprite;
     private boolean playing;
     private int score;
+    private int bestScore;
     private long startTime;
     private boolean lostGame = false;
     private int health = 200;
 
     private ArrayList<Bullet> bullets;
     private int shotSpeed = 20;
-    private int shotStrength = 50;
+    private int shotStrength = 25;
     private boolean triggerPressed = false;
     private Bullet b;
 
@@ -42,6 +43,7 @@ public class Player extends GameObject {
         bullets = new ArrayList<Bullet>();
         setUpAnimation(numFrames, d);
         disappear = true;
+        bestScore = 0;
     }
 
     private void setUpAnimation(int numFrames, long d) {
@@ -56,7 +58,12 @@ public class Player extends GameObject {
     }
 
     public void update() {
-        //long elapsed = (System.nanoTime() - startTime) / 1000000; //конвертируем в миллисекунды
+        long elapsed = (System.nanoTime() - startTime) / 1000000; //конвертируем в миллисекунды
+        if(elapsed > 100) {
+            startTime = System.nanoTime();
+            score += 1;
+        }
+
         animation.update();
         //уперлись в небо
         if(y <= 10)
@@ -101,9 +108,11 @@ public class Player extends GameObject {
                 for (Enemy e : GamePanel.enemies) {
                     if (b.checkHit(e)) {
                         e.getDamage(b.getDamage());
+                        this.score += 5;
                         if (e.getHealth() <= 0) {
                             GamePanel.explosions.add(GamePanel.createExplosion(e.getX(), e.getY(), e.getSpeed() * (-1)));
                             GamePanel.enemies.remove(e);
+                            this.score += 20;
                         }
                         bullets.remove(i);
                         break;
@@ -131,25 +140,21 @@ public class Player extends GameObject {
         playing = f;
     }
 
-    public void setScrore(int s) {
-        score = 0;
+    public void addScrore(int s) {
+        score += s;
     }
 
     public int getScore() {
         return this.score;
     }
 
-    public boolean getLostGame() {
-        return this.lostGame;
-    }
-
-    public void setLostGame(boolean f) { this.lostGame = f; }
-
     public void resetDY() {
         dy = 0;
     }
 
     public void resetPlayer() {
+        if(score > bestScore)
+            bestScore = score;
         score = 0;
         dy = 0;
         x = 100;
@@ -193,5 +198,10 @@ public class Player extends GameObject {
     }
 
     public boolean getDisappear() { return disappear; }
+
     public void setDisappear(boolean f) { disappear = f; }
+
+    public void setBestScore(int score) { bestScore = score; }
+
+    public int getBestScore() { return bestScore; }
 }

@@ -1,6 +1,7 @@
 package com.example.alex.fighters;
 
 import android.content.Context;
+import android.content.pm.FeatureInfo;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -140,9 +141,10 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                 exp.draw(canvas);
             }
 
-            drawDebug(canvas, gameThread); //отладочная информация
+            //drawDebug(canvas, gameThread); //отладочная информация
             drawText(canvas);
-            drawGameInterface(canvas);
+            if(player.getPlaying())
+                drawGameInterface(canvas);
             canvas.restoreToCount(savedState);
         }
     }
@@ -166,7 +168,7 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
                             Configuration.BF_FRAMECOUNT,
                             1000,
                             35,
-                            200,
+                            10,
                             50
                         ));
                 enemyStartTime = System.nanoTime();
@@ -220,26 +222,41 @@ public class GamePanel extends SurfaceView implements SurfaceHolder.Callback {
 
     private void drawText(Canvas canvas) {
         Paint paint = new Paint();
-        paint.setTextSize(40);
         paint.setColor(Color.BLACK);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
 
         //Стартовый экран
         if(justEntered) {
-            canvas.drawText("Новая игра. Вход", 100, HEIGHT/2, paint);
+            paint.setTextSize(100);
+            canvas.drawText("The Dogfight", 90, HEIGHT / 2 - 50, paint);
+            paint.setTextSize(30);
+            canvas.drawText("Tap the screen to start a new game", 110, HEIGHT / 2 + 20, paint);
+            paint.setTextSize(20);
+            canvas.drawText("Use accelerometer to soar up and down with tap for shooting", 110, HEIGHT/2 + 60, paint);
         }
         //В случае проигрыша
         if(!justEntered && !newGameCreated) {
-            canvas.drawText("Проиграл. Начни новою игру", 100, HEIGHT/2, paint);
+            paint.setTextSize(100);
+            canvas.drawText("You lost", 100, HEIGHT / 2 - 50, paint);
+            paint.setTextSize(30);
+            if(player.getScore() > player.getBestScore())
+                canvas.drawText("New best: " + player.getScore() + " points", 110, HEIGHT / 2 + 30, paint);
+            else {
+                canvas.drawText("Your score: " + player.getScore() + " points", 110, HEIGHT / 2 + 20, paint);
+                canvas.drawText("Best score: " + player.getBestScore() + " points", 110, HEIGHT / 2 + 60, paint);
+            }
+            paint.setTextSize(20);
+            canvas.drawText("Tap to launch a new game", 110, HEIGHT / 2 + 90, paint);
         }
     }
 
     private void drawGameInterface(Canvas canvas) {
         Paint paint = new Paint();
         paint.setColor(Color.BLACK);
-        paint.setTextSize(30);
+        paint.setTextSize(20);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
         canvas.drawText(("Health: " + player.getHealth()), 10, 30, paint);
+        canvas.drawText(("Score: " + player.getScore()), 10, 60, paint);
     }
 
     //Вывод отладочной информации
